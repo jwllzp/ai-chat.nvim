@@ -7,7 +7,7 @@ M.setup = function()
 end
 
 M.state = {
-	floating = {
+	split = {
 		buf = -1,
 		win = -1,
 	}
@@ -64,15 +64,15 @@ M.chat = function()
 	local lines = vim.split(output_text, "\n", {plain=true})
 
 	-- create window if not exists
-	if not vim.api.nvim_win_is_valid(M.state.floating.win) then
-		M.state.floating = M.open_floating_win({ buf = M.state.floating.buf })
+	if not vim.api.nvim_win_is_valid(M.state.split.win) then
+		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
 	end
 
 	-- clear buffer contents
-	vim.api.nvim_buf_set_lines(M.state.floating.buf, 0, -1, false, {})
+	vim.api.nvim_buf_set_lines(M.state.split.buf, 0, -1, false, {})
 
 	-- insert output
-	vim.api.nvim_buf_set_lines(M.state.floating.buf, 0, #lines, false, lines)
+	vim.api.nvim_buf_set_lines(M.state.split.buf, 0, #lines, false, lines)
 end
 
 
