@@ -89,6 +89,7 @@ M.open_floating_win = function(opts)
 	local win = vim.api.nvim_open_win(buf, true, win_opts)
 	vim.api.nvim_set_option_value("wrap", true, { win = win })
 	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
+	vim.api.nvim_set_option_value("filetype", "markdown", { buf = buf })
 
 	return { buf=buf, win=win, }
 end
@@ -170,6 +171,7 @@ vim.api.nvim_create_user_command("Aichat", function()
 	M.chat()
 end, {})
 
+-- TODO: copy code snippet
 vim.keymap.set("n", "<leader><leader>", function()
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
 		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
