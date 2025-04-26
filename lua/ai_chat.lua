@@ -107,30 +107,16 @@ M.format_output = function(prompt, output_text, split_cols)
 	return lines
 end
 
---- makes request to api and prints response
----@return nil: api response
-M.chat = function()
-	local prompt = vim.fn.input("Write prompt: ")
-	vim.api.nvim_out_write("\n")
-	local res = curl.post("https://api.openai.com/v1/responses", {
-		headers = {
-			["Content-Type"] = "application/json",
-			["Authorization"] = "Bearer " .. os.getenv("OPENAI_API_KEY"),
-		},
-		body = vim.fn.json_encode({
-			model = "gpt-4o-mini",
-			input = prompt,
-		}),
-	})
+--- callback function to write async response to split
+--- @param prompt string
+--- @param res table: http response table
+--- @return nil
+M.callback_write_response_to_split = function(prompt, res)
+	-- extract output
 	local data = vim.json.decode(res.body)
 	local output_text = data["output"][1]["content"][1]["text"]
 
-	-- create window if not exists
-	if not vim.api.nvim_win_is_valid(M.state.split.win) then
-		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
-	end
-
-	-- insert output
+	-- insert output in window
 	local lines = M.format_output(
 		prompt,
 		output_text,
@@ -150,6 +136,33 @@ M.chat = function()
 	table.insert(M.state.prompt_line_numbers, start+2)
 
 	M.state.current_line = end_
+end
+
+--- makes request to api and prints response
+---@return nil: api response
+M.chat = function()
+	local prompt = vim.fn.input("Write prompt: ")
+
+	-- create window if not exists
+	if not vim.api.nvim_win_is_valid(M.state.split.win) then
+		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
+	end
+
+	curl.post("https://api.openai.com/v1/responses", {
+		headers = {
+			["Content-Type"] = "application/json",
+			["Authorization"] = "Bearer " .. os.getenv("OPENAI_API_KEY"),
+		},
+		body = vim.fn.json_encode({
+			model = "gpt-4o-mini",
+			input = prompt,
+		}),
+		callback = function(res)
+			vim.schedule(function()
+				M.callback_write_response_to_split(prompt, res)
+			end)
+		end
+	})
 end
 
 
