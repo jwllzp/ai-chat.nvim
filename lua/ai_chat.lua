@@ -56,6 +56,12 @@ M.set_prompt_window_keymaps = function()
 		noremap = true,
 		silent = true
 	})
+
+	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', 'ys', '', {
+		callback = M.yank_code_snippet,
+		noremap = true,
+		silent = true
+	})
 end
 
 --- create a floating window
@@ -166,12 +172,31 @@ M.chat = function()
 	})
 end
 
+M.yank_code_snippet = function()
+	--- TODO: needs refactor, see how treesitter-textobjects does selection
+	local ts_utils = require("nvim-treesitter.ts_utils")
+	local node = ts_utils.get_node_at_cursor()
+
+	-- Traverse up to find code_fence node
+	while node:parent() ~= nil do
+		node = node:parent()
+	end
+
+	if node then
+		local start_row, start_col, end_row, end_col = node:range()
+		local last_line = vim.api.nvim_buf_get_lines(M.state.split.buf, end_row-1, end_row, false)[1]
+		vim.api.nvim_win_set_cursor(0, {start_row + 1, start_col})
+		vim.cmd("normal! v")
+		vim.api.nvim_win_set_cursor(0, {end_row, #last_line-1})
+		vim.cmd("normal! y")
+		vim.cmd("normal! <")
+	end
+end
 
 vim.api.nvim_create_user_command("Aichat", function()
 	M.chat()
 end, {})
 
--- TODO: copy code snippet
 vim.keymap.set("n", "<leader><leader>", function()
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
 		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
