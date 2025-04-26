@@ -11,8 +11,52 @@ M.state = {
 		buf = -1,
 		win = -1,
 	},
-	current_line = 0
+	current_line = 0,
+	prompt_line_numbers = {},
 }
+
+M.move_to_prev_prompt = function()
+	local line = vim.api.nvim_win_get_cursor(M.state.split.win)[1] - 1
+
+	if line <= 1 then
+		line = M.state.prompt_line_numbers[1]
+	else
+		while not vim.tbl_contains(M.state.prompt_line_numbers, line) do
+			line = line - 1
+		end
+	end
+
+	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
+end
+
+M.move_to_next_prompt = function()
+	local line = vim.api.nvim_win_get_cursor(M.state.split.win)[1] + 1
+	local max_prompt_line = M.state.prompt_line_numbers[#M.state.prompt_line_numbers]
+
+	if line >= max_prompt_line then
+		line = max_prompt_line
+	else
+		while not vim.tbl_contains(M.state.prompt_line_numbers, line) do
+			line = line + 1
+		end
+	end
+
+	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
+end
+
+M.set_prompt_window_keymaps = function()
+	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', '[[', '', {
+		callback = M.move_to_prev_prompt,
+		noremap = true,
+		silent = true
+	})
+
+	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', ']]', '', {
+		callback = M.move_to_next_prompt,
+		noremap = true,
+		silent = true
+	})
+end
 
 --- create a floating window
 M.open_floating_win = function(opts)
@@ -28,6 +72,8 @@ M.open_floating_win = function(opts)
 	else
 		buf = vim.api.nvim_create_buf(false, true)
 	end
+
+	M.set_prompt_window_keymaps()
 
 	local win_opts = {
 		split = "right",
@@ -99,6 +145,9 @@ M.chat = function()
 	-- focus on newest prompt
 	vim.api.nvim_win_set_cursor(M.state.split.win, {start+2, 0})
 	vim.api.nvim_command("normal! zt")
+
+	-- cache location of newly inserted prompt
+	table.insert(M.state.prompt_line_numbers, start+2)
 
 	M.state.current_line = end_
 end
