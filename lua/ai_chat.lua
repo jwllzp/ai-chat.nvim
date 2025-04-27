@@ -45,22 +45,25 @@ M.move_to_next_prompt = function()
 end
 
 M.set_prompt_window_keymaps = function()
-	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', '[[', '', {
-		callback = M.move_to_prev_prompt,
+	vim.keymap.set("n", "<leader>p", M.move_to_prev_prompt, {
+		buffer = M.state.split.buf,
 		noremap = true,
-		silent = true
+		silent = true,
+		desc = "Navigate to previous prompt",
 	})
 
-	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', ']]', '', {
-		callback = M.move_to_next_prompt,
+	vim.keymap.set("n", "<leader>n", M.move_to_next_prompt, {
+		buffer = M.state.split.buf,
 		noremap = true,
-		silent = true
+		silent = true,
+		desc = "Navigate to next prompt",
 	})
 
 	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', 'ys', '', {
 		callback = M.yank_code_snippet,
 		noremap = true,
-		silent = true
+		silent = true,
+		desc = "[y]anc [s]nippet under cursor"
 	})
 end
 
@@ -103,13 +106,11 @@ end
 --- returns each line in the response as an element in a table
 ---@param prompt string
 ---@param output_text string: raw string from response
----@param split_cols integer: number of columns in split
 M.format_output = function(prompt, output_text, split_cols)
-	local sep1 = string.rep("=", split_cols)
-	local sep2 = string.rep("-", split_cols)
+	local sep = string.rep("-", split_cols)
 	local lines = vim.split(
-		sep1 .. "\n".. prompt .. "\n".. sep2 .."\n" .. output_text, "\n",
-		{plain=true}
+		sep .. "\n# " .. prompt .. "\n\n" .. output_text .. "\n", "\n",
+		{ plain=true }
 	)
 	return lines
 end
