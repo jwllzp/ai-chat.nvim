@@ -11,6 +11,10 @@ M.state = {
 		buf = -1,
 		win = -1,
 	},
+  prompt_float = {
+		buf = -1,
+		win = -1,
+	},
 	current_line = 0,
 	prompt_line_numbers = {},
 }
@@ -44,7 +48,17 @@ M.move_to_next_prompt = function()
 	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
 end
 
-M.set_prompt_window_keymaps = function()
+M.set_prompt_float_window_keymaps = function()
+  vim.keymap.set("n", "<CR>", function()
+    local lines = vim.api.nvim_buf_get_lines(M.state.prompt_float.buf, 0, -1, false)
+    local prompt = table.concat(lines, "\n")
+    vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
+    vim.api.nvim_win_close(M.state.prompt_float.win, true)
+    if prompt == "" then M.chat(prompt) end
+  end, { buffer = M.state.prompt_float.but, nowait = true, silent = true })
+end
+
+M.set_split_window_keymaps = function()
 	vim.keymap.set("n", "<leader>p", M.move_to_prev_prompt, {
 		buffer = M.state.split.buf,
 		noremap = true,
@@ -70,6 +84,7 @@ end
 --- create a floating window
 M.open_floating_win = function(opts)
 	opts = opts or {}
+
 	local win_width = math.floor((opts.width or 0.5) * vim.o.columns)
 	local win_height = math.floor((opts.height or 0.5) * vim.o.lines)
 	local row = math.floor((vim.o.lines - win_height) / 2)
@@ -82,7 +97,46 @@ M.open_floating_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
-	M.set_prompt_window_keymaps()
+	M.set_prompt_float_window_keymaps()
+
+	local win_opts = {
+    relative = "editor",
+		width = win_width,
+		height = win_height,
+		row = row,
+		col = col,
+		-- style = "minimal",
+		border = "rounded",
+    title = " prompt ",
+    title_pos = "center",
+    footer = " [<Enter> to commit] ",
+    footer_pos = "right"
+	}
+
+	-- settings
+	local win = vim.api.nvim_open_win(buf, true, win_opts)
+	vim.api.nvim_set_option_value("wrap", true, { win = win })
+	vim.api.nvim_set_option_value("filetype", "markdown", { buf = buf })
+
+	return { buf=buf, win=win, }
+end
+
+--- create a split window
+M.open_split_win = function(opts)
+	opts = opts or {}
+	local win_width = math.floor((opts.width or 0.5) * vim.o.columns)
+	local win_height = math.floor((opts.height or 0.5) * vim.o.lines)
+	local row = math.floor((vim.o.lines - win_height) / 2)
+	local col = math.floor((vim.o.columns - win_width) / 2)
+
+	local buf = nil
+	if vim.api.nvim_buf_is_valid(opts.buf) then
+		buf = opts.buf
+	else
+		buf = vim.api.nvim_create_buf(false, true)
+	end
+
+	M.set_split_window_keymaps()
 
 	local win_opts = {
 		split = "right",
@@ -104,8 +158,8 @@ M.open_floating_win = function(opts)
 end
 
 --- returns each line in the response as an element in a table
----@param prompt string
----@param output_text string: raw string from response
+--- @param prompt string
+--- @param output_text string: raw string from response
 M.format_output = function(prompt, output_text, split_cols)
 	local sep = string.rep("-", split_cols)
 	local lines = vim.split(
@@ -147,13 +201,14 @@ M.callback_write_response_to_split = function(prompt, res)
 end
 
 --- makes request to api and prints response
----@return nil: api response
-M.chat = function()
-	local prompt = vim.fn.input("Write prompt: ")
+--- @param prompt string
+--- @return nil: api response
+M.chat = function(prompt)
+  if #prompt == 0 then return end
 
 	-- create window if not exists
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
-		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
+		M.state.split = M.open_split_win({ buf = M.state.split.buf })
 	end
 
 	curl.post("https://api.openai.com/v1/responses", {
@@ -195,12 +250,17 @@ M.yank_code_snippet = function()
 end
 
 vim.keymap.set("n", "<leader>c", function()
-  M.chat()
+  -- M.chat()
+	if not vim.api.nvim_win_is_valid(M.state.prompt_float.win) then
+		M.state.prompt_float = M.open_floating_win({ buf = M.state.prompt_float.buf })
+	else
+		vim.api.nvim_win_hide(M.state.prompt_float.win)
+	end
 end)
 
 vim.keymap.set("n", "<leader><leader>", function()
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
-		M.state.split = M.open_floating_win({ buf = M.state.split.buf })
+		M.state.split = M.open_split_win({ buf = M.state.split.buf })
 	else
 		vim.api.nvim_win_hide(M.state.split.win)
 	end
