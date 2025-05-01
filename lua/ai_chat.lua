@@ -54,7 +54,7 @@ M.set_prompt_float_window_keymaps = function()
     local prompt = table.concat(lines, "\n")
     vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
-    if prompt == "" then M.chat(prompt) end
+    M.chat(prompt)
   end, { buffer = M.state.prompt_float.but, nowait = true, silent = true })
 end
 
