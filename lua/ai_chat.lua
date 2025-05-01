@@ -194,9 +194,9 @@ M.yank_code_snippet = function()
 	end
 end
 
-vim.api.nvim_create_user_command("Aichat", function()
-	M.chat()
-end, {})
+vim.keymap.set("n", "<leader>c", function()
+  M.chat()
+end)
 
 vim.keymap.set("n", "<leader><leader>", function()
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
