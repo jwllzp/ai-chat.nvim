@@ -250,7 +250,6 @@ M.yank_code_snippet = function()
 end
 
 vim.keymap.set("n", "<leader>c", function()
-  -- M.chat()
 	if not vim.api.nvim_win_is_valid(M.state.prompt_float.win) then
 		M.state.prompt_float = M.open_floating_win({ buf = M.state.prompt_float.buf })
 	else
