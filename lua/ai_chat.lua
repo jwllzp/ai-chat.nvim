@@ -17,6 +17,12 @@ M.state = {
 	},
 	current_line = 0,
 	prompt_line_numbers = {},
+  api_settings = {
+    converstaion_mode = false
+  },
+  response = {
+    id = nil,
+  },
 }
 
 M.move_to_prev_prompt = function()
@@ -99,6 +105,13 @@ M.open_floating_win = function(opts)
 
 	M.set_prompt_float_window_keymaps()
 
+  local float_title
+  if M.state.api_settings.converstaion_mode then
+    float_title = " prompt - conversation "
+  else
+    float_title = " prompt - ask "
+  end
+
 	local win_opts = {
     relative = "editor",
 		width = win_width,
@@ -107,7 +120,7 @@ M.open_floating_win = function(opts)
 		col = col,
 		-- style = "minimal",
 		border = "rounded",
-    title = " prompt ",
+    title = float_title,
     title_pos = "center",
     footer = " [<Enter> to commit] ",
     footer_pos = "right"
@@ -176,6 +189,7 @@ end
 M.callback_write_response_to_split = function(prompt, res)
 	-- extract output
 	local data = vim.json.decode(res.body)
+  M.state.response.id = data["id"]
 	local output_text = data["output"][1]["content"][1]["text"]
 
 	-- insert output in window
@@ -219,6 +233,7 @@ M.chat = function(prompt)
 		body = vim.fn.json_encode({
 			model = "gpt-4o-mini",
 			input = prompt,
+      previous_response_id = M.get_last_response_id(),
 		}),
 		callback = function(res)
 			vim.schedule(function()
@@ -226,6 +241,12 @@ M.chat = function(prompt)
 			end)
 		end
 	})
+end
+
+M.get_last_response_id = function()
+  if M.state.api_settings.converstaion_mode then
+    return M.state.response.id
+  end
 end
 
 M.yank_code_snippet = function()
@@ -248,6 +269,26 @@ M.yank_code_snippet = function()
 		vim.cmd("normal! <")
 	end
 end
+
+M.toggle_conversation_mode = function()
+  M.state.api_settings.converstaion_mode = not M.state.api_settings.converstaion_mode
+  if not M.state.api_settings.converstaion_mode then
+    M.state.response.id = nil
+  end
+  print("[Aichat] conversation mode set to: ".. tostring(M.state.api_settings.converstaion_mode))
+end
+
+vim.api.nvim_create_user_command('Aichat', function(opts)
+  if opts.args == "toggle_conversation_mode" then
+    M.toggle_conversation_mode()
+  end
+  end, {
+  desc = "Toggle conversation mode",
+  nargs = 1,
+  complete = function()
+    return { "toggle_conversation_mode" }
+  end
+})
 
 vim.keymap.set("n", "<leader>c", function()
 	if not vim.api.nvim_win_is_valid(M.state.prompt_float.win) then
