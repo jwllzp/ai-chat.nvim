@@ -251,23 +251,54 @@ end
 
 M.yank_code_snippet = function()
 	--- TODO: needs refactor, see how treesitter-textobjects does selection
-	local ts_utils = require("nvim-treesitter.ts_utils")
-	local node = ts_utils.get_node_at_cursor()
+  if M.inside_markdown_code_fence() then
+    local ts_utils = require("nvim-treesitter.ts_utils")
+    local node = ts_utils.get_node_at_cursor()
+    while node:parent() ~= nil do
+      node = node:parent()
+    end
+    if node then
+      local start_row, start_col, end_row, end_col = node:range()
+      local last_line = vim.api.nvim_buf_get_lines(M.state.split.buf, end_row-1, end_row, false)[1]
+      vim.api.nvim_win_set_cursor(0, {start_row + 1, start_col})
+      vim.cmd("normal! v")
+      vim.api.nvim_win_set_cursor(0, {end_row, #last_line-1})
+      vim.cmd("normal! y")
+      vim.cmd("normal! <")
+    end
+  end
+end
 
-	-- Traverse up to find code_fence node
-	while node:parent() ~= nil do
-		node = node:parent()
-	end
 
-	if node then
-		local start_row, start_col, end_row, end_col = node:range()
-		local last_line = vim.api.nvim_buf_get_lines(M.state.split.buf, end_row-1, end_row, false)[1]
-		vim.api.nvim_win_set_cursor(0, {start_row + 1, start_col})
-		vim.cmd("normal! v")
-		vim.api.nvim_win_set_cursor(0, {end_row, #last_line-1})
-		vim.cmd("normal! y")
-		vim.cmd("normal! <")
-	end
+M.get_markdown_node_at_cursor = function()
+  local ts = vim.treesitter
+  local parsers = require("nvim-treesitter.parsers")
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local lang = parsers.get_buf_lang(bufnr)
+  if lang ~= "markdown" then return nil end
+
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  row = row - 1
+
+  local parser = ts.get_parser(bufnr, "markdown")
+
+  for _, tree in ipairs(parser:parse()) do
+    local root = tree:root()
+    local node = root:named_descendant_for_range(row, col, row, col)
+    return node
+  end
+end
+
+M.inside_markdown_code_fence = function()
+  local node = M.get_markdown_node_at_cursor()
+  while node ~= nil do
+    if node:type() == "code_fence_content" then
+      return true
+    end
+    node = node:parent()
+  end
+  return false
 end
 
 M.toggle_conversation_mode = function()
