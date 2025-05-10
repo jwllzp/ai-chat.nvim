@@ -64,22 +64,22 @@ M.set_prompt_float_window_keymaps = function(buf)
   end, { buffer = buf, nowait = true, silent = true })
 end
 
-M.set_split_window_keymaps = function()
+M.set_split_window_keymaps = function(buf)
 	vim.keymap.set("n", "<leader>p", M.move_to_prev_prompt, {
-		buffer = M.state.split.buf,
+		buffer = buf,
 		noremap = true,
 		silent = true,
-		desc = "Navigate to previous prompt",
+		desc = "Navigate to [p]revious prompt",
 	})
 
 	vim.keymap.set("n", "<leader>n", M.move_to_next_prompt, {
-		buffer = M.state.split.buf,
+		buffer = buf,
 		noremap = true,
 		silent = true,
-		desc = "Navigate to next prompt",
+		desc = "Navigate to [n]ext prompt",
 	})
 
-	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', 'ys', '', {
+	vim.api.nvim_buf_set_keymap(buf, 'n', 'ys', '', {
 		callback = M.yank_code_snippet,
 		noremap = true,
 		silent = true,
@@ -150,7 +150,7 @@ M.open_split_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
-	M.set_split_window_keymaps()
+	M.set_split_window_keymaps(buf)
 
 	local win_opts = {
 		split = "right",
