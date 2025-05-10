@@ -54,14 +54,14 @@ M.move_to_next_prompt = function()
 	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
 end
 
-M.set_prompt_float_window_keymaps = function()
+M.set_prompt_float_window_keymaps = function(buf)
   vim.keymap.set("n", "<CR>", function()
     local lines = vim.api.nvim_buf_get_lines(M.state.prompt_float.buf, 0, -1, false)
     local prompt = table.concat(lines, "\n")
     vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
     M.chat(prompt)
-  end, { buffer = M.state.prompt_float.buf, nowait = true, silent = true })
+  end, { buffer = buf, nowait = true, silent = true })
 end
 
 M.set_split_window_keymaps = function()
@@ -103,7 +103,7 @@ M.open_floating_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
-	M.set_prompt_float_window_keymaps()
+	M.set_prompt_float_window_keymaps(buf)
 
   local float_title
   if M.state.api_settings.converstaion_mode then
