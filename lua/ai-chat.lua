@@ -54,32 +54,32 @@ M.move_to_next_prompt = function()
 	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
 end
 
-M.set_prompt_float_window_keymaps = function()
+M.set_prompt_float_window_keymaps = function(buf)
   vim.keymap.set("n", "<CR>", function()
     local lines = vim.api.nvim_buf_get_lines(M.state.prompt_float.buf, 0, -1, false)
     local prompt = table.concat(lines, "\n")
     vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
     M.chat(prompt)
-  end, { buffer = M.state.prompt_float.but, nowait = true, silent = true })
+  end, { buffer = buf, nowait = true, silent = true })
 end
 
-M.set_split_window_keymaps = function()
+M.set_split_window_keymaps = function(buf)
 	vim.keymap.set("n", "<leader>p", M.move_to_prev_prompt, {
-		buffer = M.state.split.buf,
+		buffer = buf,
 		noremap = true,
 		silent = true,
-		desc = "Navigate to previous prompt",
+		desc = "Navigate to [p]revious prompt",
 	})
 
 	vim.keymap.set("n", "<leader>n", M.move_to_next_prompt, {
-		buffer = M.state.split.buf,
+		buffer = buf,
 		noremap = true,
 		silent = true,
-		desc = "Navigate to next prompt",
+		desc = "Navigate to [n]ext prompt",
 	})
 
-	vim.api.nvim_buf_set_keymap(M.state.split.buf, 'n', 'ys', '', {
+	vim.api.nvim_buf_set_keymap(buf, 'n', 'ys', '', {
 		callback = M.yank_code_snippet,
 		noremap = true,
 		silent = true,
@@ -103,7 +103,7 @@ M.open_floating_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
-	M.set_prompt_float_window_keymaps()
+	M.set_prompt_float_window_keymaps(buf)
 
   local float_title
   if M.state.api_settings.converstaion_mode then
@@ -128,6 +128,7 @@ M.open_floating_win = function(opts)
 
 	-- settings
 	local win = vim.api.nvim_open_win(buf, true, win_opts)
+  vim.cmd("startinsert")
 	vim.api.nvim_set_option_value("wrap", true, { win = win })
 	vim.api.nvim_set_option_value("filetype", "markdown", { buf = buf })
 
@@ -149,7 +150,7 @@ M.open_split_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
-	M.set_split_window_keymaps()
+	M.set_split_window_keymaps(buf)
 
 	local win_opts = {
 		split = "right",
@@ -218,7 +219,8 @@ end
 --- @param prompt string
 --- @return nil: api response
 M.chat = function(prompt)
-  if #prompt == 0 then return end
+  local _prompt = string.gsub(prompt, "^%s*(.-)%s*$", "%1")
+  if #_prompt == 0 then return end
 
 	-- create window if not exists
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
@@ -232,12 +234,12 @@ M.chat = function(prompt)
 		},
 		body = vim.fn.json_encode({
 			model = "gpt-4o-mini",
-			input = prompt,
+			input = _prompt,
       previous_response_id = M.get_last_response_id(),
 		}),
 		callback = function(res)
 			vim.schedule(function()
-				M.callback_write_response_to_split(prompt, res)
+				M.callback_write_response_to_split(_prompt, res)
 			end)
 		end
 	})
