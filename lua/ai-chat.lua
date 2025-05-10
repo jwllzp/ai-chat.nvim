@@ -218,7 +218,8 @@ end
 --- @param prompt string
 --- @return nil: api response
 M.chat = function(prompt)
-  if #prompt == 0 then return end
+  local _prompt = string.gsub(prompt, "^%s*(.-)%s*$", "%1")
+  if #_prompt == 0 then return end
 
 	-- create window if not exists
 	if not vim.api.nvim_win_is_valid(M.state.split.win) then
@@ -232,12 +233,12 @@ M.chat = function(prompt)
 		},
 		body = vim.fn.json_encode({
 			model = "gpt-4o-mini",
-			input = prompt,
+			input = _prompt,
       previous_response_id = M.get_last_response_id(),
 		}),
 		callback = function(res)
 			vim.schedule(function()
-				M.callback_write_response_to_split(prompt, res)
+				M.callback_write_response_to_split(_prompt, res)
 			end)
 		end
 	})
