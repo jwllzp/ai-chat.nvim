@@ -61,7 +61,7 @@ M.set_prompt_float_window_keymaps = function()
     vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
     M.chat(prompt)
-  end, { buffer = M.state.prompt_float.but, nowait = true, silent = true })
+  end, { buffer = M.state.prompt_float.buf, nowait = true, silent = true })
 end
 
 M.set_split_window_keymaps = function()
@@ -128,6 +128,7 @@ M.open_floating_win = function(opts)
 
 	-- settings
 	local win = vim.api.nvim_open_win(buf, true, win_opts)
+  vim.cmd("startinsert")
 	vim.api.nvim_set_option_value("wrap", true, { win = win })
 	vim.api.nvim_set_option_value("filetype", "markdown", { buf = buf })
 
