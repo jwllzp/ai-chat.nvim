@@ -62,6 +62,10 @@ M.set_prompt_float_window_keymaps = function(buf)
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
     M.chat(prompt)
   end, { buffer = buf, nowait = true, silent = true })
+
+  vim.keymap.set("n", "<Esc>", function()
+      vim.api.nvim_win_hide(M.state.prompt_float.win)
+  end)
 end
 
 M.set_split_window_keymaps = function(buf)
