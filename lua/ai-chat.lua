@@ -7,6 +7,7 @@ M.setup = function()
 end
 
 M.state = {
+  llm_provider = "anthropic",
 	split = {
 		buf = -1,
 		win = -1,
@@ -195,7 +196,13 @@ M.callback_write_response_to_split = function(prompt, res)
 	-- extract output
 	local data = vim.json.decode(res.body)
   M.state.response.id = data["id"]
-	local output_text = data["output"][1]["content"][1]["text"]
+
+  local output_text
+  if M.state.llm_provider == "anthropic" then
+    output_text = data["content"][1]["text"]
+  else
+    output_text = data["output"][1]["content"][1]["text"]
+  end
 
 	-- insert output in window
 	local lines = M.format_output(
@@ -226,27 +233,54 @@ M.chat = function(prompt)
   local _prompt = string.gsub(prompt, "^%s*(.-)%s*$", "%1")
   if #_prompt == 0 then return end
 
-	-- create window if not exists
-	if not vim.api.nvim_win_is_valid(M.state.split.win) then
-		M.state.split = M.open_split_win({ buf = M.state.split.buf })
-	end
+  -- create window if not exists
+  if not vim.api.nvim_win_is_valid(M.state.split.win) then
+    M.state.split = M.open_split_win({ buf = M.state.split.buf })
+  end
 
-	curl.post("https://api.openai.com/v1/responses", {
-		headers = {
-			["Content-Type"] = "application/json",
-			["Authorization"] = "Bearer " .. os.getenv("OPENAI_API_KEY"),
-		},
-		body = vim.fn.json_encode({
-			model = "gpt-4o-mini",
-			input = _prompt,
-      previous_response_id = M.get_last_response_id(),
-		}),
-		callback = function(res)
-			vim.schedule(function()
-				M.callback_write_response_to_split(_prompt, res)
-			end)
-		end
-	})
+  if M.state.llm_provider == "anthropic" then
+    print("usinng anthropic!")
+    curl.post("https://api.anthropic.com/v1/messages", {
+      headers = {
+        ["Content-Type"] = "application/json",
+        ["x-api-key"] = os.getenv("ANTHROPIC_API_KEY"),
+        ["anthropic-version"] = "2023-06-01"
+      },
+      body = vim.fn.json_encode({
+        model = "claude-3-5-haiku-20241022",
+        max_tokens = 1024,
+        messages = {
+          {
+            role = "user",
+            content = _prompt
+          }
+        },
+      }),
+      callback = function(res)
+        vim.schedule(function()
+          M.callback_write_response_to_split(_prompt, res)
+        end)
+      end
+    })
+  else
+
+    curl.post("https://api.openai.com/v1/responses", {
+      headers = {
+        ["Content-Type"] = "application/json",
+        ["Authorization"] = "Bearer " .. os.getenv("OPENAI_API_KEY"),
+      },
+      body = vim.fn.json_encode({
+        model = "gpt-4o-mini",
+        input = _prompt,
+        previous_response_id = M.get_last_response_id(),
+      }),
+      callback = function(res)
+        vim.schedule(function()
+          M.callback_write_response_to_split(_prompt, res)
+        end)
+      end
+    })
+  end
 end
 
 M.get_last_response_id = function()
