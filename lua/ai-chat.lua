@@ -1,6 +1,7 @@
 local curl = require("plenary.curl")
 
 local M = {}
+local augroup = vim.api.nvim_create_augroup("Ai-Chat", { clear = true })
 
 M.setup = function()
 	-- nothing
@@ -26,7 +27,7 @@ M.state = {
   },
 }
 
-M.move_to_prev_prompt = function()
+function M.move_to_prev_prompt()
 	local line = vim.api.nvim_win_get_cursor(M.state.split.win)[1] - 1
 
 	if line <= 1 then
@@ -40,7 +41,7 @@ M.move_to_prev_prompt = function()
 	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
 end
 
-M.move_to_next_prompt = function()
+function M.move_to_next_prompt()
 	local line = vim.api.nvim_win_get_cursor(M.state.split.win)[1] + 1
 	local max_prompt_line = M.state.prompt_line_numbers[#M.state.prompt_line_numbers]
 
@@ -55,21 +56,23 @@ M.move_to_next_prompt = function()
 	vim.api.nvim_win_set_cursor(M.state.split.win, {line, 0})
 end
 
-M.set_prompt_float_window_keymaps = function(buf)
-  vim.keymap.set("n", "<CR>", function()
+function M.set_prompt_float_window_keymaps(buf)
+  vim.keymap.set({"n","i"}, "<C-s>", function()
     local lines = vim.api.nvim_buf_get_lines(M.state.prompt_float.buf, 0, -1, false)
     local prompt = table.concat(lines, "\n")
     vim.api.nvim_buf_set_lines(M.state.prompt_float.buf, 0, -1, false, { "" })
     vim.api.nvim_win_close(M.state.prompt_float.win, true)
     M.chat(prompt)
-  end, { buffer = buf, nowait = true, silent = true })
+  end, { buffer = buf, nowait = true, silent = true, desc="[Ctrl] [s]end prompt"})
 
-  vim.keymap.set("n", "<Esc>", function()
-      vim.api.nvim_win_hide(M.state.prompt_float.win)
-  end)
+  vim.keymap.set("n", "q", function() vim.api.nvim_win_hide(M.state.prompt_float.win) end, {
+    buffer = buf,
+    nowait = true,
+    silent = true,
+  })
 end
 
-M.set_split_window_keymaps = function(buf)
+function M.set_split_window_keymaps(buf)
 	vim.keymap.set("n", "<leader>p", M.move_to_prev_prompt, {
 		buffer = buf,
 		noremap = true,
@@ -84,16 +87,32 @@ M.set_split_window_keymaps = function(buf)
 		desc = "Navigate to [n]ext prompt",
 	})
 
-	vim.api.nvim_buf_set_keymap(buf, 'n', 'ys', '', {
-		callback = M.yank_code_snippet,
+	vim.keymap.set('n', 'ys', M.yank_code_snippet, {
+    buffer = buf,
 		noremap = true,
 		silent = true,
 		desc = "[y]anc [s]nippet under cursor"
 	})
+
+	vim.keymap.set('n', 'q', function() vim.api.nvim_win_hide(M.state.split.win) end, {
+    buffer = buf,
+		noremap = true,
+		silent = true,
+		desc = "[q]uit split window"
+	})
+end
+
+function M.set_split_window_autocomands(buf)
+  vim.api.nvim_create_autocmd({'BufEnter'}, {
+    buffer = buf,
+    group = augroup,
+    command = "stopinsert",
+    desc = "make sure split is entered in normal mode"
+  })
 end
 
 --- create a floating window
-M.open_floating_win = function(opts)
+function M.open_floating_win(opts)
 	opts = opts or {}
 
 	local win_width = math.floor((opts.width or 0.5) * vim.o.columns)
@@ -141,7 +160,7 @@ M.open_floating_win = function(opts)
 end
 
 --- create a split window
-M.open_split_win = function(opts)
+function M.open_split_win(opts)
 	opts = opts or {}
 	local win_width = math.floor((opts.width or 0.5) * vim.o.columns)
 	local win_height = math.floor((opts.height or 0.5) * vim.o.lines)
@@ -155,6 +174,7 @@ M.open_split_win = function(opts)
 		buf = vim.api.nvim_create_buf(false, true)
 	end
 
+	M.set_split_window_autocomands(buf)
 	M.set_split_window_keymaps(buf)
 
 	local win_opts = {
@@ -179,7 +199,7 @@ end
 --- returns each line in the response as an element in a table
 --- @param prompt string
 --- @param output_text string: raw string from response
-M.format_output = function(prompt, output_text, split_cols)
+function M.format_output(prompt, output_text, split_cols)
 	local sep = string.rep("-", split_cols)
 	local lines = vim.split(
 		sep .. "\n# " .. prompt .. "\n\n" .. output_text .. "\n", "\n",
@@ -192,7 +212,7 @@ end
 --- @param prompt string
 --- @param res table: http response table
 --- @return nil
-M.callback_write_response_to_split = function(prompt, res)
+function M.callback_write_response_to_split(prompt, res)
 	-- extract output
 	local data = vim.json.decode(res.body)
   M.state.response.id = data["id"]
@@ -229,7 +249,7 @@ end
 --- makes request to api and prints response
 --- @param prompt string
 --- @return nil: api response
-M.chat = function(prompt)
+function M.chat(prompt)
   local _prompt = string.gsub(prompt, "^%s*(.-)%s*$", "%1")
   if #_prompt == 0 then return end
 
@@ -239,7 +259,6 @@ M.chat = function(prompt)
   end
 
   if M.state.llm_provider == "anthropic" then
-    print("usinng anthropic!")
     curl.post("https://api.anthropic.com/v1/messages", {
       headers = {
         ["Content-Type"] = "application/json",
@@ -283,13 +302,13 @@ M.chat = function(prompt)
   end
 end
 
-M.get_last_response_id = function()
+function M.get_last_response_id()
   if M.state.api_settings.converstaion_mode then
     return M.state.response.id
   end
 end
 
-M.yank_code_snippet = function()
+function M.yank_code_snippet()
 	--- TODO: needs refactor, see how treesitter-textobjects does selection
   if M.inside_markdown_code_fence() then
     local ts_utils = require("nvim-treesitter.ts_utils")
@@ -310,7 +329,7 @@ M.yank_code_snippet = function()
 end
 
 
-M.get_markdown_node_at_cursor = function()
+function M.get_markdown_node_at_cursor()
   local ts = vim.treesitter
   local parsers = require("nvim-treesitter.parsers")
 
@@ -330,7 +349,7 @@ M.get_markdown_node_at_cursor = function()
   end
 end
 
-M.inside_markdown_code_fence = function()
+function M.inside_markdown_code_fence()
   local node = M.get_markdown_node_at_cursor()
   while node ~= nil do
     if node:type() == "code_fence_content" then
@@ -341,7 +360,7 @@ M.inside_markdown_code_fence = function()
   return false
 end
 
-M.toggle_conversation_mode = function()
+function M.toggle_conversation_mode()
   M.state.api_settings.converstaion_mode = not M.state.api_settings.converstaion_mode
   if not M.state.api_settings.converstaion_mode then
     M.state.response.id = nil
