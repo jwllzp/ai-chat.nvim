@@ -280,7 +280,7 @@ function M.chat(prompt)
 				end)
 			end,
 		})
-	else
+	elseif M.state.llm_provider == "open_ai" then
 		curl.post("https://api.openai.com/v1/responses", {
 			headers = {
 				["Content-Type"] = "application/json",
@@ -297,6 +297,8 @@ function M.chat(prompt)
 				end)
 			end,
 		})
+	else
+		print("Invalid llm provider " .. M.state.llm_provider)
 	end
 end
 
