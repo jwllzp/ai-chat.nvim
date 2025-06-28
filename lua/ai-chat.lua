@@ -150,7 +150,7 @@ function M.open_floating_win(opts)
 		border = "rounded",
 		title = float_title,
 		title_pos = "center",
-		footer = " [<Enter> to commit] ",
+		footer = " [<Ctrl+s> to send] ",
 		footer_pos = "right",
 	}
 
