@@ -10,7 +10,7 @@ function M.send(prompt, cb)
 			["Authorization"] = "Bearer " .. (os.getenv("OPENAI_API_KEY") or ""),
 		},
 		body = vim.fn.json_encode({
-			model = "gpt-5",
+			model = "gpt-5-mini",
 			input = prompt,
 			previous_response_id = st.conversation and st.response.id or nil,
 		}),
