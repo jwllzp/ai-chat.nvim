@@ -8,7 +8,7 @@ local state = {
 	prompt_float = { buf = -1, win = -1 },
 	current_line = 0,
 	prompt_line_numbers = {},
-	conversation = false,
+	conversation = true,
 	response = { id = nil },
 }
 
