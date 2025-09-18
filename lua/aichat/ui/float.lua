@@ -43,7 +43,7 @@ function M.open(opts)
 		border = "rounded",
 		title = title,
 		title_pos = "center",
-		footer = " [<Enter> to commit] ",
+		footer = " [<Ctrl+s> to send] ",
 		footer_pos = "right",
 	})
 	vim.cmd("startinsert")
