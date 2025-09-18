@@ -6,8 +6,8 @@ local client = require("aichat.client")
 
 local M = {}
 
-function M.setup(user_cfg)
-	local opts = cfg.setup(user_cfg)
+function M.setup(opts)
+	opts = cfg.setup(opts)
 	local st = st_mod.get()
 	st.provider = opts.provider
 	st.conversation = opts.conversation
@@ -30,16 +30,11 @@ function M.setup(user_cfg)
 	end, { desc = "Toggle AI split" })
 
 	-- Command(s)
-	vim.api.nvim_create_user_command("Aichat", function(cmd)
-		if cmd.args == "toggle_conversation_mode" then
-			M.toggle_conversation_mode()
-		end
+	vim.api.nvim_create_user_command("AichatState", function()
+		print("[Aichat] state")
+		print(vim.inspect(cfg.get()))
 	end, {
-		desc = "Toggle conversation mode",
-		nargs = 1,
-		complete = function()
-			return { "toggle_conversation_mode" }
-		end,
+		desc = "Print current chat state",
 	})
 end
 

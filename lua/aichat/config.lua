@@ -18,11 +18,11 @@ M.defaults = {
 	},
 }
 
-function M.setup(user)
-	local opts = vim.tbl_deep_extend("force", M.defaults, user or {})
+function M.setup(opts)
+	opts = vim.tbl_deep_extend("force", M.defaults, opts or {})
 	-- Back-compat: old misspelling converstaion_mode
-	if user and user.api_settings and user.api_settings.converstaion_mode ~= nil then
-		opts.conversation = user.api_settings.converstaion_mode
+	if opts and opts.api_settings and opts.api_settings.converstaion_mode ~= nil then
+		opts.conversation = opts.api_settings.converstaion_mode
 	end
 	M.options = opts
 	return opts
