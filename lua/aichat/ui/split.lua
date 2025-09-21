@@ -35,7 +35,26 @@ function M.open(opts)
 	local width = math.floor((opts.width or cfg.windows.split.width) * vim.o.columns)
 	local height = math.floor((opts.height or cfg.windows.split.height) * vim.o.lines)
 
-	local buf = vim.api.nvim_buf_is_valid(st.split.buf) and st.split.buf or vim.api.nvim_create_buf(false, true)
+	local buf
+	if not vim.api.nvim_buf_is_valid(st.split.buf) then
+		buf = vim.api.nvim_create_buf(false, true)
+
+		local chat_dir = vim.fn.stdpath("data") .. "/aichat"
+		local path = chat_dir .. "/chat.md"
+		local file = io.open(path, "r")
+		if not file then
+			print("Could not open file")
+			return
+		end
+		local content = file:read("*a")
+		file:close()
+		st.current_line = st.current_line + #vim.split(content, "\n")
+
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(content, "\n"))
+	else
+		buf = st.split.buf
+	end
+
 	local win = vim.api.nvim_open_win(buf, true, { split = "right", width = width, height = height, style = "minimal" })
 
 	vim.api.nvim_set_option_value("wrap", true, { win = win })
@@ -95,7 +114,20 @@ function M.write_response(prompt, output_text)
 	vim.cmd("normal! zt")
 	table.insert(st.prompt_line_numbers, start_ + 2)
 
+	M.append_response_to_cache(lines)
+
 	st.current_line = finish
+end
+
+function M.append_response_to_cache(lines)
+	local path = vim.fn.stdpath("data") .. "/aichat/chat.md"
+	local file = io.open(path, "a")
+	if file then
+		file:write(table.concat(lines, "\n"), "\n")
+		file:close()
+	else
+		print("Failed to open file for appending")
+	end
 end
 
 return M

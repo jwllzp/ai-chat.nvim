@@ -5,7 +5,7 @@ M.augroup = vim.api.nvim_create_augroup("Ai-Chat", { clear = true })
 local state = {
 	provider = "openai",
 	split = { buf = -1, win = -1 },
-	prompt_float = { buf = -1, win = -1 },
+	prompt_float = { buf = -1, win = 7 },
 	current_line = 0,
 	prompt_line_numbers = {},
 	conversation = true,
@@ -18,6 +18,10 @@ end
 
 function M.set_provider(name)
 	state.provider = name
+end
+
+function M.set_response_id(id)
+	state.response.id = id
 end
 
 function M.set_conversation(enabled)

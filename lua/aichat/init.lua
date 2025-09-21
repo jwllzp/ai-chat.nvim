@@ -3,14 +3,18 @@ local st_mod = require("aichat.state")
 local float = require("aichat.ui.float")
 local split = require("aichat.ui.split")
 local client = require("aichat.client")
+local caches = require("aichat.caches")
 
 local M = {}
 
 function M.setup(opts)
+	caches.setup()
+	local cache = caches.get_converstation_state()
 	opts = cfg.setup(opts)
 	local st = st_mod.get()
 	st.provider = opts.provider
 	st.conversation = opts.conversation
+	st.response.id = cache.last_response_id
 
 	-- Default keymaps
 	vim.keymap.set("n", opts.keymaps.toggle_prompt, function()
@@ -32,7 +36,7 @@ function M.setup(opts)
 	-- Command(s)
 	vim.api.nvim_create_user_command("AichatState", function()
 		print("[Aichat] state")
-		print(vim.inspect(cfg.get()))
+		print(vim.inspect(st))
 	end, {
 		desc = "Print current chat state",
 	})
