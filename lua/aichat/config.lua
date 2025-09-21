@@ -2,7 +2,7 @@ local M = {}
 
 M.defaults = {
 	provider = "openai",
-	conversation = false,
+	conversation = true,
 	windows = {
 		split = { width = 0.5, height = 0.5 },
 		float = { width = 0.5, height = 0.5 },
