@@ -3,7 +3,6 @@ local M = {}
 local chat_dir = vim.fn.stdpath("data") .. "/aichat"
 
 function M.setup()
-	print("running seupt")
 	if vim.fn.isdirectory(chat_dir) == 0 then
 		vim.fn.mkdir(chat_dir, "p")
 	end
