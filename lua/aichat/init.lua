@@ -40,12 +40,33 @@ function M.setup(opts)
 	end, {
 		desc = "Print current chat state",
 	})
+
+	local user_commands = {
+		"state",
+		"toggle_conversation_mode",
+	}
+
+	vim.api.nvim_create_user_command("AiChat", function(args)
+		local arg = args["args"]
+		if arg == user_commands[1] then
+			print("[AiChat] Current state")
+			print("--------------")
+			print(vim.inspect(st))
+		elseif arg == user_commands[2] then
+			M.toggle_conversation_mode()
+		end
+	end, {
+		nargs = "?",
+		complete = function()
+			return user_commands
+		end,
+	})
 end
 
 function M.toggle_conversation_mode()
 	local st = st_mod.get()
 	st_mod.set_conversation(not st.conversation)
-	print("[Aichat] conversation mode set to: " .. tostring(st.conversation))
+	print("[Aichat] Conversation mode set to: " .. tostring(st.conversation))
 end
 
 -- public API
